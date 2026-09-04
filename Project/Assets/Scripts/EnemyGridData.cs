@@ -1,7 +1,8 @@
 using Unity.Entities;
 using Unity.Mathematics;
+using System;
 
-struct EnemyGridData : System.IComparable<EnemyGridData>
+struct EnemyGridData : IComparable<EnemyGridData>
 {
     public int CellIndex;
     public Entity Entity;
