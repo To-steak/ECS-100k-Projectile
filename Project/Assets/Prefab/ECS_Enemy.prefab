@@ -160,3 +160,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   moveSpeed: 15
+  radius: 0.5

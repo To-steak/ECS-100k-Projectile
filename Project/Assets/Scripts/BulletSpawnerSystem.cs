@@ -39,7 +39,7 @@ partial struct BulletSpawnerSystem : ISystem
                 float2 randomPos2D = _random.NextFloat2Direction() * _random.NextFloat(0f, 1f);
                 float3 spawnPosition = new float3(randomPos2D.x, 0, randomPos2D.y);
                 
-                state.EntityManager.SetComponentData(bullet, LocalTransform.FromPositionRotationScale(spawnPosition, quaternion.identity, 5.0f));
+                state.EntityManager.SetComponentData(bullet, LocalTransform.FromPositionRotationScale(spawnPosition, quaternion.identity, 1.0f));
                 state.EntityManager.SetComponentData(bullet, new Bullet
                 {
                     Direction = randomDirection,

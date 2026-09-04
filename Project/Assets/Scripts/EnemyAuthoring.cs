@@ -19,7 +19,7 @@ class EnemyAuthoringBaker : Baker<EnemyAuthoring>
 
         AddComponent(entity, new Enemy
         {
-           MoveSpeed = authoring.moveSpeed 
+           MoveSpeed = authoring.moveSpeed
         });
     }
 }

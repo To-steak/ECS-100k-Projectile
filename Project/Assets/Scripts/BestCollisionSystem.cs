@@ -7,6 +7,7 @@ using Unity.Transforms;
 partial struct BestCollisionSystem : ISystem
 {
     private const float CELL_SIZE = 10f;
+    private const float ENEMY_RADIUS = 0.5f;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -37,7 +38,7 @@ partial struct BestCollisionSystem : ISystem
         foreach (var (bulletTransform, bullet, bulletEntity) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<Bullet>>().WithEntityAccess())
         {
             float3 position = bulletTransform.ValueRO.Position;
-            float radius = bullet.ValueRO.Radius;
+            float radius = bullet.ValueRO.Radius + ENEMY_RADIUS;
             int2 cellCoord = new int2((int)math.floor(position.x / CELL_SIZE), (int)math.floor(position.z / CELL_SIZE));
 
             bool hit = false;
@@ -52,9 +53,9 @@ partial struct BestCollisionSystem : ISystem
                     {
                         do
                         {
-                            float distance = math.distance(position, enemyData.Position);
+                            float distanceSQ = math.distancesq(position, enemyData.Position);
 
-                            if (distance <= radius)
+                            if (distanceSQ <= radius * radius)
                             {
                                 ecb.DestroyEntity(enemyData.Entity);
                                 ecb.DestroyEntity(bulletEntity);

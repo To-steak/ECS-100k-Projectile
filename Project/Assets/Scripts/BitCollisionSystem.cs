@@ -10,6 +10,7 @@ partial struct BitCollisionSystem : ISystem
     private const int GRID_SIZE = 200;
     private const int GRID_OFFSET = 100;
     private const int TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+    private const float ENEMY_RADIUS = 0.5f;
 
     private EntityQuery _enemyQuery;
 
@@ -80,7 +81,7 @@ partial struct BitCollisionSystem : ISystem
         foreach (var (bulletTransform, bullet, bulletEntity) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<Bullet>>().WithEntityAccess())
         {
             float3 position = bulletTransform.ValueRO.Position;
-            float radius = bullet.ValueRO.Radius;
+            float radius = bullet.ValueRO.Radius + ENEMY_RADIUS;
             int2 cellCoord = new int2((int)math.floor(position.x / CELL_SIZE), (int)math.floor(position.z / CELL_SIZE));
             bool hit = false;
 
@@ -114,9 +115,9 @@ partial struct BitCollisionSystem : ISystem
                         for (int k = offset; k < endIdx; k++)
                         {
                             var enemyData = enemyDataArray[k];
-                            float distance = math.distance(position, enemyData.Position);
+                            float distanceSQ = math.distancesq(position, enemyData.Position);
 
-                            if (distance <= radius)
+                            if (distanceSQ <= radius * radius)
                             {
                                 ecb.DestroyEntity(enemyData.Entity);
                                 ecb.DestroyEntity(bulletEntity);

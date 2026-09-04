@@ -5,10 +5,12 @@ using Unity.Transforms;
 
 partial struct WorstCollisionSystem : ISystem
 {
+    private const float ENEMY_RADIUS = 0.5f;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        
+
     }
 
     [BurstCompile]
@@ -24,10 +26,10 @@ partial struct WorstCollisionSystem : ISystem
                 float3 bulletPos = bulletTransform.ValueRO.Position;
                 float3 enemyPos = enemyTransform.ValueRO.Position;
 
-                float distance = math.distance(bulletPos, enemyPos);
-                float collisionRadius = bullet.ValueRO.Radius;
+                float distanceSQ = math.distancesq(bulletPos, enemyPos);
+                float radius = bullet.ValueRO.Radius + ENEMY_RADIUS;
 
-                if (distance <= collisionRadius)
+                if (distanceSQ <= radius * radius)
                 {
                     ecb.DestroyEntity(enemyEntity);
                     ecb.DestroyEntity(bulletEntity);
@@ -40,6 +42,6 @@ partial struct WorstCollisionSystem : ISystem
     [BurstCompile]
     public void OnDestroy(ref SystemState state)
     {
-        
+
     }
 }
