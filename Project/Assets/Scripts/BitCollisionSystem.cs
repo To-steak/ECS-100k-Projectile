@@ -28,7 +28,7 @@ partial struct BitCollisionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var occupancyBits = new NativeBitArray(TOTAL_CELLS, Allocator.Temp, NativeArrayOptions.ClearMemory);
+        // var occupancyBits = new NativeBitArray(TOTAL_CELLS, Allocator.Temp, NativeArrayOptions.ClearMemory);
         var enemyDataArray = new NativeArray<EnemyGridData>(enemyCount, Allocator.Temp);
         var gridOffsets = new NativeArray<int>(TOTAL_CELLS, Allocator.Temp);
         var gridCounts = new NativeArray<int>(TOTAL_CELLS, Allocator.Temp);
@@ -52,7 +52,7 @@ partial struct BitCollisionSystem : ISystem
             if (x >= 0 && x < GRID_SIZE && z >= 0 && z < GRID_SIZE)
             {
                 linearIndex = z * GRID_SIZE + x;
-                occupancyBits.Set(linearIndex, true); // 해당 셀에 적이 있음을 비트로 표시
+                // occupancyBits.Set(linearIndex, true); // 해당 셀에 적이 있음을 비트로 표시
             }
 
             enemyDataArray[index++] = new EnemyGridData
@@ -99,10 +99,10 @@ partial struct BitCollisionSystem : ISystem
                     int linearIndex = checkZ * GRID_SIZE + checkX;
 
                     // 1차 검문: 비트가 0이면 빈 공간이므로 즉시 스킵 (해시맵 때와 동일한 Fast-fail)
-                    if (!occupancyBits.IsSet(linearIndex))
-                    {
-                        continue;
-                    }
+                    // if (!occupancyBits.IsSet(linearIndex))
+                    // {
+                    //     continue;
+                    // }
 
                     // 2차 탐색: 비트가 1일 때만 배열 오프셋 접근
                     int offset = gridOffsets[linearIndex];
@@ -131,7 +131,7 @@ partial struct BitCollisionSystem : ISystem
             }
         }
 
-        occupancyBits.Dispose();
+        // occupancyBits.Dispose();
         enemyDataArray.Dispose();
         gridOffsets.Dispose();
         gridCounts.Dispose();

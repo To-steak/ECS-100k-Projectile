@@ -20,14 +20,14 @@ partial struct BestCollisionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var enemyGrid = new NativeParallelMultiHashMap<int2, EnemyGridData>(2048, Allocator.Temp);
+        var enemyGrid = new NativeParallelMultiHashMap<int2, EnemyCellData>(2048, Allocator.Temp);
 
         foreach (var (enemyTransform, enemy, enemyEntity) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<Enemy>>().WithEntityAccess())
         {
             float3 position = enemyTransform.ValueRO.Position;
             int2 cellCoord = new int2((int)math.floor(position.x / CELL_SIZE), (int)math.floor(position.z / CELL_SIZE));
 
-            enemyGrid.Add(cellCoord, new EnemyGridData
+            enemyGrid.Add(cellCoord, new EnemyCellData
             {
                 Entity = enemyEntity,
                 Position = position
