@@ -2,31 +2,47 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Profiling;
 using Unity.Transforms;
 
 partial struct BestCollisionSystem : ISystem
 {
-    private const float CELL_SIZE = 10f;
-    private const float ENEMY_RADIUS = 0.5f;
+    static readonly ProfilerMarker s_AllocMarker = new ProfilerMarker("BestCollision.Alloc");
+    static readonly ProfilerMarker s_BuildGridMarker = new ProfilerMarker("BestCollision.BuildGrid");
+    static readonly ProfilerMarker s_QueryMarker = new ProfilerMarker("BestCollision.Query");
+    static readonly ProfilerMarker s_SyncMarker = new ProfilerMarker("BestCollision.Sync");
+
+    private EntityQuery _enemyQuery;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-
+        _enemyQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<Enemy, LocalTransform>().Build(ref state);
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        s_SyncMarker.Begin();
+        state.CompleteDependency();
+        s_SyncMarker.End();
+
+        int enemyCount = _enemyQuery.CalculateEntityCount();
+        if (enemyCount == 0) return;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var enemyGrid = new NativeParallelMultiHashMap<int2, EnemyCellData>(2048, Allocator.Temp);
+        s_AllocMarker.Begin();
+        var enemyGrid = new NativeParallelMultiHashMap<int2, EnemyCellData>(enemyCount, Allocator.Temp);
+        s_AllocMarker.End();
 
-        foreach (var (enemyTransform, enemy, enemyEntity) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<Enemy>>().WithEntityAccess())
+        s_BuildGridMarker.Begin();
+        foreach (var (enemyTransform, enemy, enemyEntity) in
+                 SystemAPI.Query<RefRO<LocalTransform>, RefRO<Enemy>>().WithEntityAccess())
         {
             float3 position = enemyTransform.ValueRO.Position;
-            int2 cellCoord = new int2((int)math.floor(position.x / CELL_SIZE), (int)math.floor(position.z / CELL_SIZE));
+            int2 cellCoord = GridManager.ToCell(position);
 
             enemyGrid.Add(cellCoord, new EnemyCellData
             {
@@ -34,12 +50,15 @@ partial struct BestCollisionSystem : ISystem
                 Position = position
             });
         }
+        s_BuildGridMarker.End();
 
-        foreach (var (bulletTransform, bullet, bulletEntity) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<Bullet>>().WithEntityAccess())
+        s_QueryMarker.Begin();
+        foreach (var (bulletTransform, bullet, bulletEntity) in
+                 SystemAPI.Query<RefRO<LocalTransform>, RefRO<Bullet>>().WithEntityAccess())
         {
             float3 position = bulletTransform.ValueRO.Position;
-            float radius = bullet.ValueRO.Radius + ENEMY_RADIUS;
-            int2 cellCoord = new int2((int)math.floor(position.x / CELL_SIZE), (int)math.floor(position.z / CELL_SIZE));
+            float radius = bullet.ValueRO.Radius + GridManager.ENEMY_RADIUS;
+            int2 cellCoord = GridManager.ToCell(position);
 
             bool hit = false;
 
@@ -70,6 +89,7 @@ partial struct BestCollisionSystem : ISystem
                 if (hit) break;
             }
         }
+        s_QueryMarker.End();
 
         enemyGrid.Dispose();
     }

@@ -1,11 +1,12 @@
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Profiling;
 using Unity.Transforms;
 
 partial struct WorstCollisionSystem : ISystem
 {
-    private const float ENEMY_RADIUS = 0.5f;
+    static readonly ProfilerMarker s_SyncMarker = new ProfilerMarker("WorstCollision.Sync");
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -16,6 +17,10 @@ partial struct WorstCollisionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        s_SyncMarker.Begin();
+        state.CompleteDependency();
+        s_SyncMarker.End();
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -27,7 +32,7 @@ partial struct WorstCollisionSystem : ISystem
                 float3 enemyPos = enemyTransform.ValueRO.Position;
 
                 float distanceSQ = math.distancesq(bulletPos, enemyPos);
-                float radius = bullet.ValueRO.Radius + ENEMY_RADIUS;
+                float radius = bullet.ValueRO.Radius + GridManager.ENEMY_RADIUS;
 
                 if (distanceSQ <= radius * radius)
                 {

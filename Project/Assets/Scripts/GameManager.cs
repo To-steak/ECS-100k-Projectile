@@ -24,7 +24,7 @@ public class GameManager : MonoBehaviour
 
     private float deltaTime = 0.0f;
     private float updateInterval = 0.5f;
-    private float accum = 0.0f;
+    private float accumTime = 0f;
     private int frames = 0;
     private float timeLeft;
 
@@ -77,12 +77,12 @@ public class GameManager : MonoBehaviour
 
         deltaTime = Time.unscaledDeltaTime;
         timeLeft -= deltaTime;
-        accum += 1.0f / deltaTime;
+        accumTime += deltaTime;
         frames++;
 
         if (timeLeft <= 0.0f)
         {
-            float fps = accum / frames;
+            float fps = frames / accumTime;
             fpsText.text = $"FPS: {fps:F1}";
 
             recentFpsValues.Enqueue(fps);
@@ -93,7 +93,7 @@ public class GameManager : MonoBehaviour
             avgText.text = $"AVG: {avgFps:F1}";
 
             timeLeft = updateInterval;
-            accum = 0.0f;
+            accumTime = 0.0f;
             frames = 0;
         }
     }
