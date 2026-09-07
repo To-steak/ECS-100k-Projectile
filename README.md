@@ -1,7 +1,15 @@
 # ECS 100k Projectile
 발사체 100,000체와 피격체 2,000체의 세계에서 충돌을 시뮬레이션 할 때, 해시맵 조회 이전에 비트 필터링으로 해시 조회 비용을 아낄 수 있는지 실험
 
-# 결과
+## 측정 환경
+- Unity ECS, 단일 메인 스레드 (병렬 없이 비트 필터 유무만 비교)
+- 총알이 완전히 확산된 뒤 개발 빌드에서 Profiler 스냅샷 확인
+- CPU : 12th Gen Intel(R) Core(TM) i5-12600KF(3.70 GHz)
+- GPU : NVIDIA GeForce RTX 3060 Ti
+- RAM : 16GB
+
+## 결과
+
 | 구간 | 비트 OFF | 비트 ON | 차이 |
 | --- | --- | --- | --- |
 | CPU 총합 | 14.84ms | 9.73ms | -5.11ms (-34%) |
@@ -13,7 +21,7 @@
 | Collision.Query | 7.26ms | 2.88ms | -4.38ms (-60%) |
 | EndSimulationECB | 0.829ms | 0.489ms | -0.34ms |
 
-### 용어 정리
+## 용어 정리
 | 마커 | 의미 |
 | --- | --- |
 | SimulationSystemGroup | 매 프레임 ECS 전체가 차지하는 부분 |
