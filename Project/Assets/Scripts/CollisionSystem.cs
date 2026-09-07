@@ -5,18 +5,20 @@ using Unity.Mathematics;
 using Unity.Profiling;
 using Unity.Transforms;
 
-partial struct BestCollisionSystem : ISystem
+partial struct CollisionSystem : ISystem
 {
-    static readonly ProfilerMarker s_AllocMarker = new ProfilerMarker("BestCollision.Alloc");
-    static readonly ProfilerMarker s_BuildGridMarker = new ProfilerMarker("BestCollision.BuildGrid");
-    static readonly ProfilerMarker s_QueryMarker = new ProfilerMarker("BestCollision.Query");
-    static readonly ProfilerMarker s_SyncMarker = new ProfilerMarker("BestCollision.Sync");
+    public bool UseBitFilter;
+    static readonly ProfilerMarker s_SyncMarker = new ProfilerMarker("Collision.Sync");
+    static readonly ProfilerMarker s_AllocMarker = new ProfilerMarker("Collision.Alloc");
+    static readonly ProfilerMarker s_BuildGridMarker = new ProfilerMarker("Collision.BuildGrid");
+    static readonly ProfilerMarker s_QueryMarker = new ProfilerMarker("Collision.Query");
 
     private EntityQuery _enemyQuery;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        UseBitFilter = false;
         _enemyQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<Enemy, LocalTransform>().Build(ref state);
     }
 
@@ -35,14 +37,20 @@ partial struct BestCollisionSystem : ISystem
 
         s_AllocMarker.Begin();
         var enemyGrid = new NativeParallelMultiHashMap<int2, EnemyCellData>(enemyCount, Allocator.Temp);
+        var occupancyBits = new NativeBitArray(UseBitFilter ? GridManager.TOTAL_CELLS : 1, Allocator.Temp, NativeArrayOptions.ClearMemory);
         s_AllocMarker.End();
 
         s_BuildGridMarker.Begin();
-        foreach (var (enemyTransform, enemy, enemyEntity) in
-                 SystemAPI.Query<RefRO<LocalTransform>, RefRO<Enemy>>().WithEntityAccess())
+        foreach (var (enemyTransform, enemy, enemyEntity) in SystemAPI.Query<RefRO<LocalTransform>, RefRO<Enemy>>().WithEntityAccess())
         {
             float3 position = enemyTransform.ValueRO.Position;
             int2 cellCoord = GridManager.ToCell(position);
+
+            if (UseBitFilter)
+            {
+                int linearIndex = GridManager.ToLinearIndex(cellCoord);
+                if (linearIndex != -1) occupancyBits.Set(linearIndex, true);
+            }
 
             enemyGrid.Add(cellCoord, new EnemyCellData
             {
@@ -68,6 +76,13 @@ partial struct BestCollisionSystem : ISystem
                 {
                     int2 checkCell = cellCoord + new int2(i, j);
 
+                    // 비트가 0이면 빈 격자이므로 해시 조회 자체를 건너뛴다
+                    if (UseBitFilter)
+                    {
+                        int linearIndex = GridManager.ToLinearIndex(checkCell);
+                        if (linearIndex == -1 || !occupancyBits.IsSet(linearIndex)) continue;
+                    }
+
                     if (enemyGrid.TryGetFirstValue(checkCell, out var enemyData, out var iterator))
                     {
                         do
@@ -91,6 +106,7 @@ partial struct BestCollisionSystem : ISystem
         }
         s_QueryMarker.End();
 
+        occupancyBits.Dispose();
         enemyGrid.Dispose();
     }
 
